@@ -3,15 +3,15 @@ version: '3.9'
 services:
     chat:
         build: chat
+        volumes:
+            - ./data:/var/data
     bot:
         build: bot
-    # redis:
-    #     image: 'redis:alpine'
-    #     restart: always
-    #     hostname: redis
-    #     ports:
-    #         - '6379:6379'
-    #     command: redis-server --requirepass admin
+    redis:
+        image: 'redis:alpine'
+        restart: always
+        hostname: redis
+        # command: redis-server --requirepass admin
     # rabbitmq:
     #     image: rabbitmq:3-management-alpine
     #     restart: always
