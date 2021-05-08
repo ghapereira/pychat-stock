@@ -5,8 +5,12 @@ services:
         build: chat
         volumes:
             - ./data:/var/data
+        ports:
+            - '8000:80'
     bot:
         build: bot
+        ports:
+            - '8001:80'
     redis:
         image: 'redis:alpine'
         restart: always
