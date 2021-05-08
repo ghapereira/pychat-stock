@@ -3,6 +3,11 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 
-class LoginInfo(BaseModel):
+class BaseRequest(BaseModel):
+    token: Optional[str]
+    session_id: Optional[str]
+
+
+class LoginInfo(BaseRequest):
     username: str
-    password: str
+    password: Optional[str]
