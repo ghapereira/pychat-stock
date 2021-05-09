@@ -16,6 +16,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
+    uuid = Column(String, index=True, unique=True)
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
     created_at = Column(Date)
@@ -30,6 +31,7 @@ class Chatroom(Base):
     __tablename__ = 'chatrooms'
 
     id = Column(Integer, primary_key=True, index=True)
+    uuid = Column(String, index=True, unique=True)
     name = Column(String)
     is_active = Column(Boolean, default=True)
     created_at = Column(Date)
@@ -42,6 +44,7 @@ class Message(Base):
     __tablename__ = 'messages'
 
     id = Column(Integer, primary_key=True, index=True)
+    uuid = Column(String, index=True, unique=True)
     owner_id = Column(Integer, ForeignKey('users.id'))
     chatroom_id = Column(Integer, ForeignKey('chatrooms.id'))
 

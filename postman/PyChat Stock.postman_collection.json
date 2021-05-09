@@ -1,0 +1,288 @@
+{
+	"info": {
+		"_postman_id": "d64218b5-343a-4c46-990f-2dea6df0fad1",
+		"name": "PyChat Stock",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create user",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"username\": \"{{username}}\",\n\t\"password\": \"{{userpass}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/user",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"user"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Chatroom",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let body = JSON.parse(responseBody);",
+							"let chatId = body.id;",
+							"",
+							"pm.collectionVariables.set(\"chatId\", chatId);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Sample Room\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/chatroom",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"chatroom"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let body = JSON.parse(responseBody);",
+							"let authToken = body.token,",
+							"    sessionId = body.session_id;",
+							"",
+							"pm.collectionVariables.set(\"authToken\", authToken);",
+							"pm.collectionVariables.set(\"sessionId\", sessionId);",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"username\": \"{{username}}\",\n\t\"password\": \"{{userpass}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/login",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Post message to chatroom",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-Token",
+						"value": "{{authToken}}",
+						"type": "text"
+					},
+					{
+						"key": "X-User",
+						"value": "{{username}}",
+						"type": "text"
+					},
+					{
+						"key": "X-SessionId",
+						"value": "{{sessionId}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"text\": \"Hello world\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/chatroom/{{chatId}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"chatroom",
+						"{{chatId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Refresh Token on login",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"username\": \"{{username}}\",\n    \"token\": \"{{authToken}}\",\n    \"session_id\": \"{{sessionId}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/login",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "List chatroom messages",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-Token",
+						"value": "{{authToken}}",
+						"type": "text"
+					},
+					{
+						"key": "X-User",
+						"value": "{{username}}",
+						"type": "text"
+					},
+					{
+						"key": "X-SessionId",
+						"value": "{{sessionId}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/chatroom/{{chatId}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"chatroom",
+						"{{chatId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Root",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-Token",
+						"value": "{{authToken}}",
+						"type": "text"
+					},
+					{
+						"key": "X-User",
+						"value": "{{username}}",
+						"type": "text"
+					},
+					{
+						"key": "X-SessionId",
+						"value": "{{sessionId}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}",
+					"host": [
+						"{{base_url}}"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "chatId",
+			"value": ""
+		},
+		{
+			"key": "authToken",
+			"value": ""
+		},
+		{
+			"key": "sessionId",
+			"value": ""
+		},
+		{
+			"value": ""
+		}
+	]
+}

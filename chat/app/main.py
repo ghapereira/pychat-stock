@@ -37,8 +37,17 @@ def get_db():
         db.close()
 
 
-@app.get('/')
-def read_root() -> dict:
+@app.get('/', status_code=HTTPStatus.OK)
+def read_root(
+    response: Response,
+    x_user: Optional[str] = Header(None),
+    x_token: Optional[str] = Header(None),
+    x_sessionid: Optional[str] = Header(None)
+) -> dict:
+    if not is_logged_in(username=x_user, token=x_token, session_id=x_sessionid):
+        response.status_code = HTTPStatus.UNAUTHORIZED
+        return {'msg': 'please log in'}
+
     return {'Hello': 'World'}
 
 
@@ -48,7 +57,11 @@ def login(login_info: schemas.LoginInfo,
           db: Session = Depends(get_db)) -> dict:
     # TODO: move logic to repository/services
 
-    if is_logged_in(login_info):
+    if is_logged_in(
+        username=login_info.username,
+        token=login_info.token,
+        session_id=login_info.session_id
+    ):
         return refresh_token(username=login_info.username, session_id=login_info.session_id)
 
     # TODO: catch error on unexistent user
@@ -86,23 +99,18 @@ def refresh_token(username: str, session_id: str) -> dict:
     return {'token': token, 'session_id': session_id, 'expires_in': expire_time.strftime(DATE_FORMAT)}
 
 
-def is_logged_in(login_info: schemas.LoginInfo) -> bool:
-    print('\tIn is_logged_in')
-    if login_info.token is None or login_info.session_id is None:
+def is_logged_in(username: Optional[str], token: Optional[str], session_id: Optional[str]) -> bool:
+    # TODO maybe use any?
+    if username is None or token is None or session_id is None:
         return False
 
-    print('\tThere are token and session_id')
-
     session_token = get_session_token_from_cache(
-        username=login_info.username,
-        session_id=login_info.session_id,
-        token=login_info.token
+        username=username,
+        session_id=session_id,
+        token=token
     )
 
-    print(f'\tSession token is {session_token}')
-
-    valid_token = (session_token is not None) and (str(session_token, 'utf-8') == login_info.token)
-    print(f'valid_token was deemed {valid_token}')
+    valid_token = (session_token is not None) and (str(session_token, 'utf-8') == token)
 
     return valid_token
 
@@ -147,9 +155,79 @@ def create_user(login_info: schemas.LoginInfo, db: Session = Depends(get_db)):
         password=login_info.password
     )
 
+    # return userid
     return {'msg': 'User created!'}
 
 
-@app.get('/items/{item_id}')
-def read_item(item_id: int, q: Optional[str] = None) -> dict:
-    return {'item_id': item_id, 'q': q}
+@app.get('/chatroom', status_code=HTTPStatus.OK)
+def list_user_chatrooms(
+    response: Response,
+    x_user: Optional[str] = Header(None),
+    x_token: Optional[str] = Header(None),
+    x_sessionid: Optional[str] = Header(None)
+) -> dict:
+    if not is_logged_in(username=x_user, token=x_token, session_id=x_sessionid):
+        response.status_code = HTTPStatus.UNAUTHORIZED
+        return {'msg': 'please log in'}
+
+    # TODO: return a query of all chatrooms the user has access to
+    return {}
+
+
+@app.post('/chatroom')
+def create_chatroom(chatroom_info: schemas.ChatroomInfo, db: Session = Depends(get_db)) -> dict:
+    db_chatroom = repository.create_chatroom(db=db, name=chatroom_info.name)
+
+    return {'id': db_chatroom.uuid}
+
+
+@app.post('/chatroom/{id}')
+def post_message_to_chatroom(
+    id: str,
+    response: Response,
+    message_body: schemas.MessageBody,
+    x_user: Optional[str] = Header(None),
+    x_token: Optional[str] = Header(None),
+    x_sessionid: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+) -> dict:
+    if not is_logged_in(username=x_user, token=x_token, session_id=x_sessionid):
+        response.status_code = HTTPStatus.UNAUTHORIZED
+        return {'msg': 'please log in'}
+
+    owner_id = db.query(models.User).filter(models.User.username == x_user).first().id
+    chatroom_id = db.query(models.Chatroom).filter(models.Chatroom.uuid == id).first().id
+
+    db_message = repository.create_message(
+        db=db,
+        text=message_body.text,
+        owner_id=owner_id,
+        chatroom_id=chatroom_id
+    )
+
+
+@app.get('/chatroom/{id}', status_code=HTTPStatus.OK)
+def get_messages_from_chatroom(
+    id: str,
+    response: Response,
+    x_user: Optional[str] = Header(None),
+    x_token: Optional[str] = Header(None),
+    x_sessionid: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+) -> dict:
+    if not is_logged_in(username=x_user, token=x_token, session_id=x_sessionid):
+        response.status_code = HTTPStatus.UNAUTHORIZED
+        return {'msg': 'please log in'}
+
+    # TODO maybe save chatroom id at cache?
+    chatroom_id = db.query(models.Chatroom).filter(models.Chatroom.uuid == id).first().id
+
+    messages = (
+        db.query(models.Message)
+          .filter(models.Message.chatroom_id == chatroom_id)
+          .order_by(models.Message.created_at.desc())
+          .limit(50)
+          .all()
+    )
+
+    return messages
