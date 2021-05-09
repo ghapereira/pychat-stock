@@ -1,10 +1,10 @@
 from sqlalchemy import (
     Boolean,
     Column,
-    Date,
     ForeignKey,
     Integer,
-    String
+    String,
+    TIMESTAMP
 )
 from sqlalchemy.orm import relationship
 
@@ -19,8 +19,8 @@ class User(Base):
     uuid = Column(String, index=True, unique=True)
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
-    created_at = Column(Date)
-    last_login = Column(Date)
+    created_at = Column(TIMESTAMP)
+    last_login = Column(TIMESTAMP)
 
     messages = relationship('Message', back_populates='owner')
     user_chatrooms = relationship('UserChatroom', back_populates='user')
@@ -34,7 +34,7 @@ class Chatroom(Base):
     uuid = Column(String, index=True, unique=True)
     name = Column(String)
     is_active = Column(Boolean, default=True)
-    created_at = Column(Date)
+    created_at = Column(TIMESTAMP)
 
     messages = relationship('Message', back_populates='chatroom')
     chatroom_users = relationship('UserChatroom', back_populates='chatroom')
@@ -49,7 +49,7 @@ class Message(Base):
     chatroom_id = Column(Integer, ForeignKey('chatrooms.id'))
 
     is_valid = Column(Boolean, default=True)
-    created_at = Column(Date)
+    created_at = Column(TIMESTAMP)
     text = Column(String)
 
     owner = relationship('User', back_populates='messages')
@@ -72,7 +72,7 @@ class Login(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey('users.id'))
-    created_at = Column(Date)
-    ended_at = Column(Date)
+    created_at = Column(TIMESTAMP)
+    ended_at = Column(TIMESTAMP)
 
     user = relationship('User', back_populates='logins')

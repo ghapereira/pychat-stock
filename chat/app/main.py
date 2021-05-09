@@ -195,6 +195,12 @@ def post_message_to_chatroom(
         response.status_code = HTTPStatus.UNAUTHORIZED
         return {'msg': 'please log in'}
 
+    # parse message if it is to a bot
+    if message_body.text.startswith('/stock='):
+        stockname = message_body.text.split('=')[1]
+        print(f'Send {stockname} to API via bot')
+        return {'msg': 'stock request posted'}
+
     owner_id = db.query(models.User).filter(models.User.username == x_user).first().id
     chatroom_id = db.query(models.Chatroom).filter(models.Chatroom.uuid == id).first().id
 
@@ -204,6 +210,8 @@ def post_message_to_chatroom(
         owner_id=owner_id,
         chatroom_id=chatroom_id
     )
+
+    return {'msg': 'message posted'}
 
 
 @app.get('/chatroom/{id}', status_code=HTTPStatus.OK)
@@ -225,7 +233,7 @@ def get_messages_from_chatroom(
     messages = (
         db.query(models.Message)
           .filter(models.Message.chatroom_id == chatroom_id)
-          .order_by(models.Message.created_at.desc())
+          .order_by(models.Message.created_at.asc())
           .limit(50)
           .all()
     )
