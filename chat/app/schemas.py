@@ -18,3 +18,7 @@ class ChatroomInfo(BaseModel):
 
 class MessageBody(BaseModel):
     text: str
+
+
+class BotMessageBody(MessageBody):
+    bot_name: str

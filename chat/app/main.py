@@ -214,6 +214,43 @@ def post_message_to_chatroom(
     return {'msg': 'message posted'}
 
 
+@app.post('/botchatroom/{id}')
+def post_bot_message_to_chatroom(
+    id: str,
+    message_body: schemas.BotMessageBody,
+    db: Session = Depends(get_db)
+) -> dict:
+    print('Botchatroom 1')
+    bot_list = db.query(models.User).filter(models.User.username == message_body.bot_name).all()
+    print('Botchatroom 2')
+    if not bot_list:
+        print('Botchatroom 3')
+        bot_user = repository.create_user(
+            db=db,
+            username=message_body.bot_name,
+            password=message_body.bot_name
+        )
+        bot_list = [bot_user]
+
+    print('Botchatroom 4')
+
+    owner_id = bot_list[0].id
+    chatroom_id = db.query(models.Chatroom).filter(models.Chatroom.uuid == id).first().id
+
+    print('Botchatroom 5')
+
+    db_message = repository.create_message(
+        db=db,
+        text=message_body.text,
+        owner_id=owner_id,
+        chatroom_id=chatroom_id
+    )
+
+    print('Botchatroom 6')
+
+    return {'msg': 'message posted'}
+
+
 @app.get('/chatroom/{id}', status_code=HTTPStatus.OK)
 def get_messages_from_chatroom(
     id: str,

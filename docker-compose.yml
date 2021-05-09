@@ -7,10 +7,18 @@ services:
             - ./data:/var/data
         ports:
             - '8000:80'
+        depends_on:
+            - "redis"
+            - "rabbitmq"
     bot:
         build: bot
-        ports:
-            - '8001:80'
+        depends_on:
+            - "rabbitmq"
+            - "botposter"
+    botposter:
+        build: botposter
+        depends_on:
+            - "rabbitmq"
     redis:
         image: 'redis:alpine'
         restart: always
@@ -25,6 +33,8 @@ services:
         environment:
             RABBITMQ_DEFAULT_USER: 'admin'
             RABBITMQ_DEFAULT_PASS: 'admin'
-        # ports:
-        #    - '5672:5672'
-        #    - '15672:15672'
+        ports:
+           - '5672:5672'
+           - '15672:15672'
+        volumes:
+            - ./log:/var/queuelogs
