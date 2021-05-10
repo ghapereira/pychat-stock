@@ -29,7 +29,7 @@ def main() -> None:
         }
 
         r = requests.post(
-            f'http://chat/botchatroom/{incoming["chatroom"]}',
+            f'http://chat/v1/botchatroom/{incoming["chatroom"]}',
             json=outgoing
         )
 

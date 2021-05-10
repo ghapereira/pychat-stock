@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "d64218b5-343a-4c46-990f-2dea6df0fad1",
-		"name": "PyChat Stock",
+		"name": "PyChat Stock v1",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -20,11 +20,12 @@
 					}
 				},
 				"url": {
-					"raw": "{{base_url}}/user",
+					"raw": "{{base_url}}/v1/user",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
+						"v1",
 						"user"
 					]
 				}
@@ -60,11 +61,12 @@
 					}
 				},
 				"url": {
-					"raw": "{{base_url}}/chatroom",
+					"raw": "{{base_url}}/v1/chatroom",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
+						"v1",
 						"chatroom"
 					]
 				}
@@ -103,11 +105,12 @@
 					}
 				},
 				"url": {
-					"raw": "{{base_url}}/login",
+					"raw": "{{base_url}}/v1/login",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
+						"v1",
 						"login"
 					]
 				}
@@ -137,7 +140,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"text\": \"Hello world\"\n}",
+					"raw": "{\n\t\"text\": \"A message to the chatroom\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -145,11 +148,56 @@
 					}
 				},
 				"url": {
-					"raw": "{{base_url}}/chatroom/{{chatId}}",
+					"raw": "{{base_url}}/v1/chatroom/{{chatId}}",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
+						"v1",
+						"chatroom",
+						"{{chatId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Post stock to chatroom",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-Token",
+						"value": "{{authToken}}",
+						"type": "text"
+					},
+					{
+						"key": "X-User",
+						"value": "{{username}}",
+						"type": "text"
+					},
+					{
+						"key": "X-SessionId",
+						"value": "{{sessionId}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"text\": \"/stock=aapl.us\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/v1/chatroom/{{chatId}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"v1",
 						"chatroom",
 						"{{chatId}}"
 					]
@@ -172,11 +220,12 @@
 					}
 				},
 				"url": {
-					"raw": "{{base_url}}/login",
+					"raw": "{{base_url}}/v1/login",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
+						"v1",
 						"login"
 					]
 				}
@@ -205,11 +254,12 @@
 					}
 				],
 				"url": {
-					"raw": "{{base_url}}/chatroom/{{chatId}}",
+					"raw": "{{base_url}}/v1/chatroom/{{chatId}}",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
+						"v1",
 						"chatroom",
 						"{{chatId}}"
 					]
@@ -239,9 +289,12 @@
 					}
 				],
 				"url": {
-					"raw": "{{base_url}}",
+					"raw": "{{base_url}}/v1",
 					"host": [
 						"{{base_url}}"
+					],
+					"path": [
+						"v1"
 					]
 				}
 			},

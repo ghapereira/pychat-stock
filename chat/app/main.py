@@ -41,7 +41,7 @@ def get_db():
         db.close()
 
 
-@app.get('/', status_code=HTTPStatus.OK)
+@app.get('/v1/', status_code=HTTPStatus.OK)
 def read_root(
     response: Response,
     x_user: Optional[str] = Header(None),
@@ -55,7 +55,7 @@ def read_root(
     return {'Hello': 'World'}
 
 
-@app.post('/login', status_code=HTTPStatus.OK)
+@app.post('/v1/login', status_code=HTTPStatus.OK)
 def login(login_info: schemas.LoginInfo,
           response: Response,
           db: Session = Depends(get_db)) -> dict:
@@ -148,7 +148,7 @@ def get_session_token_from_cache(username: str, session_id: str, token: str) -> 
             time.sleep(0.5)
 
 
-@app.post('/user')
+@app.post('/v1/user')
 def create_user(login_info: schemas.LoginInfo, db: Session = Depends(get_db)):
     # retrieve user from db
     # if user already exists, raise HTTPException
@@ -163,7 +163,7 @@ def create_user(login_info: schemas.LoginInfo, db: Session = Depends(get_db)):
     return {'msg': 'User created!'}
 
 
-@app.get('/chatroom', status_code=HTTPStatus.OK)
+@app.get('/v1/chatroom', status_code=HTTPStatus.OK)
 def list_user_chatrooms(
     response: Response,
     x_user: Optional[str] = Header(None),
@@ -178,14 +178,14 @@ def list_user_chatrooms(
     return {}
 
 
-@app.post('/chatroom')
+@app.post('/v1/chatroom')
 def create_chatroom(chatroom_info: schemas.ChatroomInfo, db: Session = Depends(get_db)) -> dict:
     db_chatroom = repository.create_chatroom(db=db, name=chatroom_info.name)
 
     return {'id': db_chatroom.uuid}
 
 
-@app.post('/chatroom/{chatroom_id}')
+@app.post('/v1/chatroom/{chatroom_id}')
 def post_message_to_chatroom(
     chatroom_id: str,
     response: Response,
@@ -242,7 +242,7 @@ def post_message_to_chatroom(
     return {'msg': 'message posted'}
 
 
-@app.post('/botchatroom/{id}')
+@app.post('/v1/botchatroom/{id}')
 def post_bot_message_to_chatroom(
     id: str,
     message_body: schemas.BotMessageBody,
@@ -270,7 +270,7 @@ def post_bot_message_to_chatroom(
     return {'msg': 'message posted'}
 
 
-@app.get('/chatroom/{id}', status_code=HTTPStatus.OK)
+@app.get('/v1/chatroom/{id}', status_code=HTTPStatus.OK)
 def get_messages_from_chatroom(
     id: str,
     response: Response,
