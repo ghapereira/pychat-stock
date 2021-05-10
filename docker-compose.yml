@@ -23,7 +23,6 @@ services:
         image: 'redis:alpine'
         restart: always
         hostname: redis
-        # command: redis-server --requirepass admin
     rabbitmq:
         image: rabbitmq:3-management-alpine
         restart: always
@@ -36,5 +35,3 @@ services:
         ports:
            - '5672:5672'
            - '15672:15672'
-        volumes:
-            - ./log:/var/queuelogs

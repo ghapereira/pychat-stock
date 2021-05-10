@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<form id="login-form">
+    <label for="username">Username:</label><br>
+    <input type="text" id="username" name="username"><br>
+    <label for="password">Password:</label><br>
+    <!-- TODO change to password field -->
+    <input type="text" id="password" name="password">
+
+    <button id="submit-login">submit</button>
+  </form>
+
+  <script>
+    window.addEventListener("DOMContentLoaded", function () {
+        var form = document.getElementById("login-form");
+
+        // Use fetch API
+        document.getElementById("your-id").addEventListener("click", function () {
+            form.submit();
+        });
+    });
+
+  </script>
+</html>
