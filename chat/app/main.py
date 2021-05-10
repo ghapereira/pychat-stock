@@ -1,4 +1,5 @@
 import datetime as dt
+import json
 from typing import Optional
 from http import HTTPStatus
 import uuid
@@ -10,6 +11,7 @@ from fastapi import (
     HTTPException,
     Response
 )
+import pika
 from pydantic import BaseModel
 import redis
 from sqlalchemy.orm import Session
@@ -21,6 +23,8 @@ from database import SessionLocal, engine
 CACHE_EXPIRE_TIME_SECONDS = 300
 DATE_FORMAT = '%Y-%m-%dT%H:%M:%S'
 NUM_REDIS_RETRIES = 5
+SENDING_QUEUE = 'requeststock'
+STOCK_BOT_NAME = 'stockbot'
 
 
 models.Base.metadata.create_all(bind=engine)
@@ -181,9 +185,9 @@ def create_chatroom(chatroom_info: schemas.ChatroomInfo, db: Session = Depends(g
     return {'id': db_chatroom.uuid}
 
 
-@app.post('/chatroom/{id}')
+@app.post('/chatroom/{chatroom_id}')
 def post_message_to_chatroom(
-    id: str,
+    chatroom_id: str,
     response: Response,
     message_body: schemas.MessageBody,
     x_user: Optional[str] = Header(None),
@@ -198,11 +202,35 @@ def post_message_to_chatroom(
     # parse message if it is to a bot
     if message_body.text.startswith('/stock='):
         stockname = message_body.text.split('=')[1]
-        print(f'Send {stockname} to API via bot')
+
+        credentials = pika.PlainCredentials('admin', 'admin')
+        connection_parameters = pika.ConnectionParameters(
+            host='rabbitmq',
+            credentials=credentials
+        )
+
+        connection = pika.BlockingConnection(connection_parameters)
+        channel = connection.channel()
+
+        channel.queue_declare(queue=SENDING_QUEUE)
+
+        outgoing = {
+            'stock_code': stockname,
+            'chatroom': chatroom_id,
+            'bot_name': STOCK_BOT_NAME
+        }
+
+        channel.basic_publish(
+            exchange='',
+            routing_key=SENDING_QUEUE,
+            body=json.dumps(outgoing)
+        )
+        connection.close()
+
         return {'msg': 'stock request posted'}
 
     owner_id = db.query(models.User).filter(models.User.username == x_user).first().id
-    chatroom_id = db.query(models.Chatroom).filter(models.Chatroom.uuid == id).first().id
+    chatroom_id = db.query(models.Chatroom).filter(models.Chatroom.uuid == chatroom_id).first().id
 
     db_message = repository.create_message(
         db=db,
@@ -220,11 +248,8 @@ def post_bot_message_to_chatroom(
     message_body: schemas.BotMessageBody,
     db: Session = Depends(get_db)
 ) -> dict:
-    print('Botchatroom 1')
     bot_list = db.query(models.User).filter(models.User.username == message_body.bot_name).all()
-    print('Botchatroom 2')
     if not bot_list:
-        print('Botchatroom 3')
         bot_user = repository.create_user(
             db=db,
             username=message_body.bot_name,
@@ -232,12 +257,8 @@ def post_bot_message_to_chatroom(
         )
         bot_list = [bot_user]
 
-    print('Botchatroom 4')
-
     owner_id = bot_list[0].id
     chatroom_id = db.query(models.Chatroom).filter(models.Chatroom.uuid == id).first().id
-
-    print('Botchatroom 5')
 
     db_message = repository.create_message(
         db=db,
@@ -245,8 +266,6 @@ def post_bot_message_to_chatroom(
         owner_id=owner_id,
         chatroom_id=chatroom_id
     )
-
-    print('Botchatroom 6')
 
     return {'msg': 'message posted'}
 

@@ -1,10 +1,11 @@
+import json
 import time
 
 import pika
 import requests
 
 
-RECEIVING_QUEUE = 'stockreceiver'
+RECEIVING_QUEUE = 'publishstock'
 
 
 def main() -> None:
@@ -21,9 +22,15 @@ def main() -> None:
     channel.queue_declare(queue=RECEIVING_QUEUE)
 
     def callback(ch, method, properties, body):
+        incoming = json.loads(body)
+        outgoing = {
+            'text': f'{incoming["stock_name"]} quote is {incoming["stock_quote"]}',
+            'bot_name': incoming['bot_name']
+        }
+
         r = requests.post(
-            'http://chat/botchatroom/4c3a3fa4-b66f-4891-93fc-6b0b9b61ef84',
-            json={'text': 'Posted by the bot!', 'bot_name': 'stockbot'}
+            f'http://chat/botchatroom/{incoming["chatroom"]}',
+            json=outgoing
         )
 
     channel.basic_consume(
