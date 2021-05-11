@@ -92,10 +92,27 @@
             });
         };
 
-        var sendMessageToChatroom = function() {
+        var sendMessageToChatroom = async function() {
             let messageText = document.getElementById('postdiv').innerText;
 
-            window.alert(`Send message "${messageText}" to chatroom`);
+            let chatroomId = document.getElementById('chatroomId').innerText,
+                username = document.getElementById('username').value,
+                url = `http://127.0.0.1:8000/v1/chatroom/${chatroomId}`;
+
+            const data = {'text': messageText};
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Token': token,
+                    'X-User': username,
+                    'X-SessionId': sessionId
+                },
+                body: JSON.stringify(data)
+            });
+
+            await refreshChatroomMessages();
         };
 
     </script>
