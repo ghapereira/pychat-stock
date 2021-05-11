@@ -18,6 +18,23 @@ The project is organized as a [Docker Compose](https://docs.docker.com/compose/)
 
 This project was developed under an Ubuntu 20.04 machine.
 
+### Executing the client
+
+![Base usage](https://github.com/ghapereira/pychat-stock/blob/main/static/baseusage.gif)
+
+To execute the client, open in a browser the HTML file at `pychat-stock/static/login.html`. There, the page contains four sections:
+
+* On the top, a session containing name and password fields, and a send button. This is the login session, before doing anything else please make a login. If you are using the default-provided `db.sql` there are two user/password combinations: user `plutothedog` with password `1234` and `john` with password `doe`.
+
+* The second session contains the available chatrooms. When logging in, the application will send a GET request to the `/v1/chatroom` endpoint and fill in a list of available chatrooms. If using the default db, there will be two available chatrooms with some conversations on it. The user must single-click on any of them to
+set the value of the chatroom to the next section.
+
+* The third section contains the chatroom conversations. After clicking on an available one on the past section it will be put into the "chatroom" text field and updated with the conversations. There is a "Refresh" button near to it because the server is NOT communicating with the front actively with, for example, websockets, so it falls on the client to periodically refresh the conversations itself.
+
+* On the fourth and last section an user can type a message and send it
+
+### Creating more items
+
 ## Architecture
 
 The architecture was projected to meet the given requirements. There are five listed Docker containers in the `docker-compose.yml` definition file:
@@ -61,12 +78,14 @@ As a simple project with a strict timeframe, many security issues are present. S
 
 * On some instances database records ids travel in the network among requests. One should NEVER use database records ids as keys outside it, since this leaves open internal details for attackers.
 
+* For the simplicity of the front-end, allowing it to run from localhost against the server, it ignores CORS. This is a BAD practice also.
+
+* In the Docker Compose it is used a dependency feature so the containers that use the queue will not start before it. Starting, however, isn't the same as _being ready_. In this way, it's possible that the containers that use the queue are ready before the queue, and so an eager client would make requests when it's not ready yet. The right way to deal with this is to implement a retry logic, so the clients would retry until the queue is ready. Since I had a short time to implement this I'm simply adding a delay of 15 seconds for the clients, so they will wait this time, one that the queue will be on as per my experiments. This is bad because in a slower environment this may not be the case.
+
 ## What's missing?
 
-As of v1.1:
+As of v1.2:
 
 * Moving application logic from the controller on **chat** to a "services" component
 
 * Adding automated tests
-
-* Completing the front-end

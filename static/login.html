@@ -12,11 +12,16 @@
     </div>
 
     <hr/>
+    Available Chatrooms:
+    <br/>
+    <div id="availableChatrooms" style="border: 1px solid black;"></div>
+
+    <hr/>
 
     <div id="chatdiv">
         <div id="chatroom">
-            Chatroom: <span id="chatroomId" style="border: 3px solid red;" contenteditable="true">4c3a3fa4-b66f-4891-93fc-6b0b9b61ef84</span>
-            <button id="showmessages" onclick="refreshChatroomMessages()">Show messages</button>
+            Chatroom: <span id="chatroomId" style="border: 3px solid red;"></span>
+            <button id="showmessages" onclick="refreshChatroomMessages()">Refresh</button>
             <div id="messages"></div>
         </div>
 
@@ -63,6 +68,7 @@
             response.json().then(loginData => {
                 sessionId = loginData.session_id;
                 token = loginData.token;
+                showAvailableChatrooms();
             });
         };
 
@@ -98,7 +104,7 @@
 
             let chatroomId = document.getElementById('chatroomId').innerText,
                 username = document.getElementById('username').value,
-                url = `${baseURL}/v1/chatroom/${chatroomId}`;
+                url = `${baseURL}/chatroom/${chatroomId}`;
 
             const data = {'text': messageText};
 
@@ -114,6 +120,37 @@
             });
 
             await refreshChatroomMessages();
+        };
+
+        var showAvailableChatrooms = async function() {
+            let availableChatrooms = document.getElementById('availableChatrooms'),
+                username = document.getElementById('username').value,
+                url = `${baseURL}/chatroom`;
+
+            availableChatrooms.innerHTML = '';
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Token': token,
+                    'X-User': username,
+                    'X-SessionId': sessionId
+                }
+            });
+
+            response.json().then(responseData => {
+                for(message of responseData) {
+                    var node = document.createElement('div');
+                    node.innerText = message.uuid;
+                    node.onclick = function() {
+                        let chatroomId = document.getElementById('chatroomId');
+                        chatroomId.innerText = this.innerText;
+                        refreshChatroomMessages();
+                    };
+
+                    availableChatrooms.appendChild(node);
+                }
+            });
         };
 
     </script>

@@ -180,14 +180,16 @@ def list_user_chatrooms(
     response: Response,
     x_user: Optional[str] = Header(None),
     x_token: Optional[str] = Header(None),
-    x_sessionid: Optional[str] = Header(None)
+    x_sessionid: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
 ) -> dict:
     if not is_logged_in(username=x_user, token=x_token, session_id=x_sessionid):
         response.status_code = HTTPStatus.UNAUTHORIZED
         return {'msg': 'please log in'}
 
-    # TODO: return a query of all chatrooms the user has access to
-    return {}
+    chatrooms = db.query(models.Chatroom).all()
+
+    return chatrooms
 
 
 @app.post('/v1/chatroom')
@@ -301,9 +303,11 @@ def get_messages_from_chatroom(
     messages = (
         db.query(models.Message)
           .filter(models.Message.chatroom_id == chatroom_id)
-          .order_by(models.Message.created_at.asc())
+          .order_by(models.Message.created_at.desc())
           .limit(50)
           .all()
     )
+
+    messages.reverse()
 
     return messages
