@@ -2,7 +2,6 @@ import datetime as dt
 import json
 from typing import Optional
 from http import HTTPStatus
-import uuid
 
 from fastapi import (
     Depends,
@@ -12,24 +11,16 @@ from fastapi import (
     Response
 )
 from fastapi.middleware.cors import CORSMiddleware
-import pika
 from pydantic import BaseModel
-import redis
 from sqlalchemy.orm import Session
 
 import repository, models, schemas
+from services import BotService, LoginService, TokenService
 from database import SessionLocal, engine
 
 
-CACHE_EXPIRE_TIME_SECONDS = 300
-DATE_FORMAT = '%Y-%m-%dT%H:%M:%S'
-NUM_REDIS_RETRIES = 5
-SENDING_QUEUE = 'requeststock'
-STOCK_BOT_NAME = 'stockbot'
-
-
 models.Base.metadata.create_all(bind=engine)
-cache = redis.Redis(host='redis', port=6379)
+
 app = FastAPI()
 
 
@@ -53,27 +44,12 @@ def get_db():
         db.close()
 
 
-@app.get('/v1/', status_code=HTTPStatus.OK)
-def read_root(
-    response: Response,
-    x_user: Optional[str] = Header(None),
-    x_token: Optional[str] = Header(None),
-    x_sessionid: Optional[str] = Header(None)
-) -> dict:
-    if not is_logged_in(username=x_user, token=x_token, session_id=x_sessionid):
-        response.status_code = HTTPStatus.UNAUTHORIZED
-        return {'msg': 'please log in'}
-
-    return {'Hello': 'World'}
-
 
 @app.post('/v1/login', status_code=HTTPStatus.OK)
 def login(login_info: schemas.LoginInfo,
           response: Response,
           db: Session = Depends(get_db)) -> dict:
-    # TODO: move logic to repository/services
-
-    if is_logged_in(
+    if LoginService.is_logged_in(
         username=login_info.username,
         token=login_info.token,
         session_id=login_info.session_id
@@ -95,83 +71,20 @@ def login(login_info: schemas.LoginInfo,
         response.status_code = HTTPStatus.UNAUTHORIZED
         return {'msg': 'login failed'}
 
-    return create_token(username=login_info.username)
-
-
-def create_token(username: str):
-    token = str(uuid.uuid4())
-    session_id = str(uuid.uuid4())
-    save_token_to_cache(username=username, session_id=session_id, token=token)
-    expire_time = dt.datetime.now() + dt.timedelta(seconds=CACHE_EXPIRE_TIME_SECONDS * 0.8)
-
-    return {'token': token, 'session_id': session_id, 'expires_in': expire_time.strftime(DATE_FORMAT)}
-
-
-def refresh_token(username: str, session_id: str) -> dict:
-    token = str(uuid.uuid4())
-    save_token_to_cache(username=username, session_id=session_id, token=token)
-    expire_time = dt.datetime.now() + dt.timedelta(seconds=CACHE_EXPIRE_TIME_SECONDS * 0.8)
-
-    return {'token': token, 'session_id': session_id, 'expires_in': expire_time.strftime(DATE_FORMAT)}
-
-
-def is_logged_in(username: Optional[str], token: Optional[str], session_id: Optional[str]) -> bool:
-    # TODO maybe use any?
-    if username is None or token is None or session_id is None:
-        return False
-
-    session_token = get_session_token_from_cache(
-        username=username,
-        session_id=session_id,
-        token=token
-    )
-
-    valid_token = (session_token is not None) and (str(session_token, 'utf-8') == token)
-
-    return valid_token
-
-
-def save_token_to_cache(username: str, session_id: str, token: str) -> None:
-    retries = NUM_REDIS_RETRIES
-    while True:
-        try:
-            cache.setex(
-                name=f'{username}:{session_id}',
-                time=CACHE_EXPIRE_TIME_SECONDS,
-                value=token
-            )
-            return
-        except redis.exceptions.ConnectionError as exc:
-            if retries == 0:
-                raise exc
-            retries -= 1
-            time.sleep(0.5)
-
-
-def get_session_token_from_cache(username: str, session_id: str, token: str) -> Optional[str]:
-    retries = NUM_REDIS_RETRIES
-    while True:
-        try:
-            return cache.get(name=f'{username}:{session_id}')
-        except redis.exceptions.ConnectionError as exc:
-            if retries == 0:
-                raise exc
-            retries -= 1
-            time.sleep(0.5)
+    return TokenService.create_token(username=login_info.username)
 
 
 @app.post('/v1/user')
 def create_user(login_info: schemas.LoginInfo, db: Session = Depends(get_db)):
-    # retrieve user from db
-    # if user already exists, raise HTTPException
-
     db_user = repository.create_user(
         db=db,
         username=login_info.username,
         password=login_info.password
     )
 
-    # return userid
+    # TODO if user already exists, raise HTTPException
+
+    # TODO return userid
     return {'msg': 'User created!'}
 
 
@@ -183,7 +96,7 @@ def list_user_chatrooms(
     x_sessionid: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ) -> dict:
-    if not is_logged_in(username=x_user, token=x_token, session_id=x_sessionid):
+    if not LoginService.is_logged_in(username=x_user, token=x_token, session_id=x_sessionid):
         response.status_code = HTTPStatus.UNAUTHORIZED
         return {'msg': 'please log in'}
 
@@ -209,38 +122,12 @@ def post_message_to_chatroom(
     x_sessionid: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ) -> dict:
-    if not is_logged_in(username=x_user, token=x_token, session_id=x_sessionid):
+    if not LoginService.is_logged_in(username=x_user, token=x_token, session_id=x_sessionid):
         response.status_code = HTTPStatus.UNAUTHORIZED
         return {'msg': 'please log in'}
 
-    # parse message if it is to a bot
     if message_body.text.startswith('/stock='):
-        stockname = message_body.text.split('=')[1]
-
-        credentials = pika.PlainCredentials('admin', 'admin')
-        connection_parameters = pika.ConnectionParameters(
-            host='rabbitmq',
-            credentials=credentials
-        )
-
-        connection = pika.BlockingConnection(connection_parameters)
-        channel = connection.channel()
-
-        channel.queue_declare(queue=SENDING_QUEUE)
-
-        outgoing = {
-            'stock_code': stockname,
-            'chatroom': chatroom_id,
-            'bot_name': STOCK_BOT_NAME
-        }
-
-        channel.basic_publish(
-            exchange='',
-            routing_key=SENDING_QUEUE,
-            body=json.dumps(outgoing)
-        )
-        connection.close()
-
+        BotService.post_stock(message_body=message_body, chatroom_id=chatroom_id)
         return {'msg': 'stock request posted'}
 
     owner_id = db.query(models.User).filter(models.User.username == x_user).first().id
@@ -293,7 +180,7 @@ def get_messages_from_chatroom(
     x_sessionid: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ) -> dict:
-    if not is_logged_in(username=x_user, token=x_token, session_id=x_sessionid):
+    if not LoginService.is_logged_in(username=x_user, token=x_token, session_id=x_sessionid):
         response.status_code = HTTPStatus.UNAUTHORIZED
         return {'msg': 'please log in'}
 

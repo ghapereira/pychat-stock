@@ -31,9 +31,13 @@ set the value of the chatroom to the next section.
 
 * The third section contains the chatroom conversations. After clicking on an available one on the past section it will be put into the "chatroom" text field and updated with the conversations. There is a "Refresh" button near to it because the server is NOT communicating with the front actively with, for example, websockets, so it falls on the client to periodically refresh the conversations itself.
 
-* On the fourth and last section an user can type a message and send it
+* On the fourth and last section an user can type a message and send it to the chatroom. After posting the message the client will refresh the messages. If other messages were posted in the meantime by, say, other users or the bot they will be visible there.
 
 ### Creating more items
+
+If you don't want to use the basic provided database, or if you want to create other items, there are endpoints for creation of chatrooms, users and messages. They are better described in the Postman collection or in the Swagger documentation that is available on the FastAPI server when it's running on [http://127.0.0.1:8000/docs#/](http://127.0.0.1:8000/docs#/). Create user and create chatroom are available without authentication, so in tests user/chatroom creation is fast.
+
+If you want to simply drop the provided database file and restart the server, that's ok: the sqlalchemy ORM system will create a new schema, and no prior information is needed for the system to work - of course, no logins and messages are thus possible!
 
 ## Architecture
 
@@ -56,6 +60,8 @@ Other than the containers the other components that are present are a sqlite dat
 ### Architectural considerations
 
 * The decision for passing the headers for both username (that should be user id - see in **Security considerations**) and session id are due to allow for a same user to be concurrently logged in in multiple environments.
+
+* There are possible places for parallelism. (...)
 
 
 ## Test collection
@@ -89,3 +95,5 @@ As of v1.2:
 * Moving application logic from the controller on **chat** to a "services" component
 
 * Adding automated tests
+
+* Handling more complex errors: everything here is in respect of the "happy path". For instance, one such error is trying to create a user with a username that is already taken. Server will incur in an Error 500.
