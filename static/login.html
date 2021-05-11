@@ -15,8 +15,9 @@
 
     <div id="chatdiv">
         <div id="chatroom">
-            Chatroom: <span id="chatroomId" style="border: 3px solid red;" contenteditable="true">insert chatroom id</span>
+            Chatroom: <span id="chatroomId" style="border: 3px solid red;" contenteditable="true">4c3a3fa4-b66f-4891-93fc-6b0b9b61ef84</span>
             <button id="showmessages" onclick="refreshChatroomMessages()">Show messages</button>
+            <div id="messages"></div>
         </div>
 
         <hr/>
@@ -52,21 +53,43 @@
 
             const response = await fetch(url, {
                 method: 'POST',
-                // mode: 'no', // no-cors, *cors, same-origin
-                // credentials: 'same-origin', // include, *same-origin, omit
                 headers: {
-                'Content-Type': 'application/json'
-                // 'Content-Type': 'application/x-www-form-urlencoded',
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(data) // body data type must match "Content-Type" header
+                body: JSON.stringify(data)
             });
 
-            console.log(response.json().then(x => console.log(x)));
+            response.json().then(loginData => {
+                sessionId = loginData.session_id;
+                token = loginData.token;
+            });
         };
 
-        var refreshChatroomMessages = function() {
-            let chatroomId = document.getElementById('chatroomId');
-            window.alert(`Show messages for chatroom ${chatroomId.innerText}`);
+        var refreshChatroomMessages = async function() {
+            let chatroomId = document.getElementById('chatroomId').innerText,
+                username = document.getElementById('username').value,
+                url = `http://127.0.0.1:8000/v1/chatroom/${chatroomId}`;
+
+            let chatroomMessages = document.getElementById('messages');
+
+            chatroomMessages.innerHTML = '';
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Token': token,
+                    'X-User': username,
+                    'X-SessionId': sessionId
+                }
+            });
+
+            response.json().then(responseData => {
+                for(message of responseData) {
+                    var node = document.createElement('div');
+                    node.innerText = message.text;
+                    chatroomMessages.appendChild(node);
+                }
+            });
         };
 
         var sendMessageToChatroom = function() {
