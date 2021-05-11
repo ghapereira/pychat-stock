@@ -1,23 +1,79 @@
 <!DOCTYPE html>
-<form id="login-form">
-    <label for="username">Username:</label><br>
-    <input type="text" id="username" name="username"><br>
-    <label for="password">Password:</label><br>
-    <!-- TODO change to password field -->
-    <input type="text" id="password" name="password">
+    <head>
+        <meta charset="UTF-8">
+    </head>
 
-    <button id="submit-login">submit</button>
-  </form>
+    <div id="logndiv">
+        <form id="loginform">
+            <input type="text" id="username">
+            <input type="password" id="password">
+            <input type="button" value="login" onclick="runlogin()">
+        </form>
+    </div>
 
-  <script>
-    window.addEventListener("DOMContentLoaded", function () {
-        var form = document.getElementById("login-form");
+    <hr/>
 
-        // Use fetch API
-        document.getElementById("your-id").addEventListener("click", function () {
-            form.submit();
-        });
-    });
+    <div id="chatdiv">
+        <div id="chatroom">
+            Chatroom: <span id="chatroomId" style="border: 3px solid red;" contenteditable="true">insert chatroom id</span>
+            <button id="showmessages" onclick="refreshChatroomMessages()">Show messages</button>
+        </div>
 
-  </script>
+        <hr/>
+
+        <div id="postdiv" style="border: 2px solid black" contenteditable="true">
+            type your message...
+        </div>
+        <button id="sendMessage" onclick="sendMessageToChatroom()">Send!</button>
+
+        </div>
+        <hr/>
+    </div>
+
+
+    <script>
+        var sessionId = '',
+            token = '',
+            x = '';
+
+        function json(response) {
+            console.log(typeof(response));
+            x = response;
+            return response.json();
+        }
+
+
+        var runlogin = async function() {
+            let username = document.getElementById('username').value,
+                password = document.getElementById('password').value,
+                url = 'http://127.0.0.1:8000/v1/login';
+
+            const data = {"username": username, "password": password};
+
+            const response = await fetch(url, {
+                method: 'POST',
+                // mode: 'no', // no-cors, *cors, same-origin
+                // credentials: 'same-origin', // include, *same-origin, omit
+                headers: {
+                'Content-Type': 'application/json'
+                // 'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: JSON.stringify(data) // body data type must match "Content-Type" header
+            });
+
+            console.log(response.json().then(x => console.log(x)));
+        };
+
+        var refreshChatroomMessages = function() {
+            let chatroomId = document.getElementById('chatroomId');
+            window.alert(`Show messages for chatroom ${chatroomId.innerText}`);
+        };
+
+        var sendMessageToChatroom = function() {
+            let messageText = document.getElementById('postdiv').innerText;
+
+            window.alert(`Send message "${messageText}" to chatroom`);
+        };
+
+    </script>
 </html>

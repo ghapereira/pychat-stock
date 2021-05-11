@@ -11,6 +11,7 @@ from fastapi import (
     HTTPException,
     Response
 )
+from fastapi.middleware.cors import CORSMiddleware
 import pika
 from pydantic import BaseModel
 import redis
@@ -30,6 +31,17 @@ STOCK_BOT_NAME = 'stockbot'
 models.Base.metadata.create_all(bind=engine)
 cache = redis.Redis(host='redis', port=6379)
 app = FastAPI()
+
+
+origins = ['*']
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
 
 
 # Dependency
