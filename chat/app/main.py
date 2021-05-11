@@ -12,11 +12,14 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import repository, models, schemas
 from services import BotService, LoginService, TokenService
 from database import SessionLocal, engine
+
+MESSAGES_LIMITS = 50
 
 
 models.Base.metadata.create_all(bind=engine)
@@ -75,16 +78,21 @@ def login(login_info: schemas.LoginInfo,
 
 
 @app.post('/v1/user')
-def create_user(login_info: schemas.LoginInfo, db: Session = Depends(get_db)):
-    db_user = repository.create_user(
-        db=db,
-        username=login_info.username,
-        password=login_info.password
-    )
+def create_user(
+    login_info: schemas.LoginInfo,
+    response: Response,
+    db: Session = Depends(get_db)
+):
+    try:
+        db_user = repository.create_user(
+            db=db,
+            username=login_info.username,
+            password=login_info.password
+        )
+    except IntegrityError:
+        response.status_code = HTTPStatus.UNPROCESSABLE_ENTITY
+        return {'msg': 'User already exists'}
 
-    # TODO if user already exists, raise HTTPException
-
-    # TODO return userid
     return {'msg': 'User created!'}
 
 
@@ -127,8 +135,14 @@ def post_message_to_chatroom(
         return {'msg': 'please log in'}
 
     if message_body.text.startswith('/stock='):
-        BotService.post_stock(message_body=message_body, chatroom_id=chatroom_id)
-        return {'msg': 'stock request posted'}
+        bot_service = BotService(message_body=message_body, chatroom_id=chatroom_id)
+        stock_posted_with_success = bot_service.post_stock()
+
+        if stock_posted_with_success:
+            return {'msg': 'stock request posted'}
+
+        response.status_code = HTTPStatus.SERVICE_UNAVAILABLE
+        return {'msg': 'Failure on posting stock request, please try again'}
 
     owner_id = db.query(models.User).filter(models.User.username == x_user).first().id
     chatroom_id = db.query(models.Chatroom).filter(models.Chatroom.uuid == chatroom_id).first().id
@@ -184,14 +198,13 @@ def get_messages_from_chatroom(
         response.status_code = HTTPStatus.UNAUTHORIZED
         return {'msg': 'please log in'}
 
-    # TODO maybe save chatroom id at cache?
     chatroom_id = db.query(models.Chatroom).filter(models.Chatroom.uuid == id).first().id
 
     messages = (
         db.query(models.Message)
           .filter(models.Message.chatroom_id == chatroom_id)
           .order_by(models.Message.created_at.desc())
-          .limit(50)
+          .limit(MESSAGES_LIMITS)
           .all()
     )
 

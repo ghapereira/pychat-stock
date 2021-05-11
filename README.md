@@ -18,6 +18,8 @@ The project is organized as a [Docker Compose](https://docs.docker.com/compose/)
 
 This project was developed under an Ubuntu 20.04 machine.
 
+![Running docker-compose](https://github.com/ghapereira/pychat-stock/blob/main/static/docker-compose.gif)
+
 ### Executing the client
 
 ![Base usage](https://github.com/ghapereira/pychat-stock/blob/main/static/baseusage.gif)
@@ -57,12 +59,25 @@ Other than the containers the other components that are present are a sqlite dat
 
 ### Flows
 
+#### Login
+
+![Login flow](https://github.com/ghapereira/pychat-stock/blob/main/static/login_flow.png)
+
+#### Message
+
+![Message flow](https://github.com/ghapereira/pychat-stock/blob/main/static/login_flow.png)
+
+#### Stock message
+
 ### Architectural considerations
 
 * The decision for passing the headers for both username (that should be user id - see in **Security considerations**) and session id are due to allow for a same user to be concurrently logged in in multiple environments.
 
-* There are possible places for parallelism. (...)
+* There are possible places for parallelism. The **chat** service is not tightly attached to anything but the database. If an external database was to be used, not even this. So multiple autoscaled **chat** services could exist. Web caches could be used to serve front-end and allow for this autoscaling to be transparent under it. The queues could be used to throttle requests on a high usage scenario.
 
+* The **botposter** service exists with the sole purpose of POSTing back messages from the queue to the main **chat** service. If there was, and I knew about, a way to do this directly from the queue I would do. In a cloud environment, however, there would be no need for this: a simple serverless function (AWS Lambda, Azure Functions, GCP Cloud Functions) would do the trick in an escalable way. Of course, if usage would be extreme this could incur in a high cost, but the possibility is at least worth investigating.
+
+* In the Docker Compose it is used a dependency feature so the containers that use the queue will not start before it. Starting, however, isn't the same as _being ready_. In this way, it's possible that the containers that use the queue are ready before the queue, and so an eager client would make requests when it's not ready yet. I implemented a retry logic for the queue consumers (**bot** and **botposter**), that really need it. For **chat**, that only has one job to do there, I prefer to simply ignore the error to keep the container resources free from it - user could try again later.
 
 ## Test collection
 
@@ -86,13 +101,9 @@ As a simple project with a strict timeframe, many security issues are present. S
 
 * For the simplicity of the front-end, allowing it to run from localhost against the server, it ignores CORS. This is a BAD practice also.
 
-* In the Docker Compose it is used a dependency feature so the containers that use the queue will not start before it. Starting, however, isn't the same as _being ready_. In this way, it's possible that the containers that use the queue are ready before the queue, and so an eager client would make requests when it's not ready yet. The right way to deal with this is to implement a retry logic, so the clients would retry until the queue is ready. Since I had a short time to implement this I'm simply adding a delay of 15 seconds for the clients, so they will wait this time, one that the queue will be on as per my experiments. This is bad because in a slower environment this may not be the case.
-
 ## What's missing?
 
-As of v1.2:
-
-* Moving application logic from the controller on **chat** to a "services" component
+As of v1.4:
 
 * Adding automated tests
 

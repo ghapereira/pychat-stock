@@ -14,7 +14,6 @@ HASH_ALGORITHM = 'sha256'
 PASSWORD_ENCODING = 'utf-8'
 
 
-# TODO move to services
 def check_password(db: Session, username: str, user_password: str) -> bool:
     asked_user = db.query(models.User).filter(models.User.username == username).first()
 

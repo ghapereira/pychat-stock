@@ -98,10 +98,19 @@ class CacheService:
 
 
 class BotService:
-    @staticmethod
-    def post_stock(message_body: schemas.MessageBody, chatroom_id: str):
-        stockname = message_body.text.split('=')[1]
+    def __init__(self, message_body: schemas.MessageBody, chatroom_id: str) -> None:
+        self._stockname = message_body.text.split('=')[1]
+        self._chatroom_id = chatroom_id
 
+    def post_stock(self) -> bool:
+        try:
+            self._send_message_to_queue()
+        except pika.exceptions.AMQPConnectionError:
+            return False
+
+        return True
+
+    def _send_message_to_queue(self) -> None:
         credentials = pika.PlainCredentials('admin', 'admin')
         connection_parameters = pika.ConnectionParameters(
             host='rabbitmq',
@@ -114,8 +123,8 @@ class BotService:
         channel.queue_declare(queue=SENDING_QUEUE)
 
         outgoing = {
-            'stock_code': stockname,
-            'chatroom': chatroom_id,
+            'stock_code': self._stockname,
+            'chatroom': self._chatroom_id,
             'bot_name': STOCK_BOT_NAME
         }
 

@@ -6,10 +6,19 @@ import requests
 
 
 RECEIVING_QUEUE = 'publishstock'
+QUEUE_RECONNECT_DELAY_SECONDS = 10
 
 
 def main() -> None:
-    time.sleep(10)
+    while True:
+        try:
+            queue_listen()
+        except pika.exceptions.AMQPConnectionError:
+            print(f'Could not connect to queue, retrying in {QUEUE_RECONNECT_DELAY_SECONDS} seconds')
+            time.sleep(QUEUE_RECONNECT_DELAY_SECONDS)
+
+
+def queue_listen() -> None:
     credentials = pika.PlainCredentials('admin', 'admin')
     connection_parameters = pika.ConnectionParameters(
         host='rabbitmq',
