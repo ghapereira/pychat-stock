@@ -65,9 +65,12 @@ Other than the containers the other components that are present are a sqlite dat
 
 #### Message
 
-![Message flow](https://github.com/ghapereira/pychat-stock/blob/main/static/login_flow.png)
+![Message flow](https://github.com/ghapereira/pychat-stock/blob/main/static/message_flow.png)
 
 #### Stock message
+
+![Stock message flow](https://github.com/ghapereira/pychat-stock/blob/main/static/message_bot_flow.png)
+
 
 ### Architectural considerations
 
@@ -107,4 +110,4 @@ As of v1.4:
 
 * Adding automated tests
 
-* Handling more complex errors: everything here is in respect of the "happy path". For instance, one such error is trying to create a user with a username that is already taken. Server will incur in an Error 500.
+* Handling more complex errors: everything here is in respect of the "happy path".
