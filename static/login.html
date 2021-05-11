@@ -37,8 +37,9 @@
             token = '',
             x = '';
 
+        const baseURL = 'http://127.0.0.1:8000/v1';
+
         function json(response) {
-            console.log(typeof(response));
             x = response;
             return response.json();
         }
@@ -47,7 +48,7 @@
         var runlogin = async function() {
             let username = document.getElementById('username').value,
                 password = document.getElementById('password').value,
-                url = 'http://127.0.0.1:8000/v1/login';
+                url = `${baseURL}/login`;
 
             const data = {"username": username, "password": password};
 
@@ -68,7 +69,7 @@
         var refreshChatroomMessages = async function() {
             let chatroomId = document.getElementById('chatroomId').innerText,
                 username = document.getElementById('username').value,
-                url = `http://127.0.0.1:8000/v1/chatroom/${chatroomId}`;
+                url = `${baseURL}/chatroom/${chatroomId}`;
 
             let chatroomMessages = document.getElementById('messages');
 
@@ -97,7 +98,7 @@
 
             let chatroomId = document.getElementById('chatroomId').innerText,
                 username = document.getElementById('username').value,
-                url = `http://127.0.0.1:8000/v1/chatroom/${chatroomId}`;
+                url = `${baseURL}/v1/chatroom/${chatroomId}`;
 
             const data = {'text': messageText};
 
